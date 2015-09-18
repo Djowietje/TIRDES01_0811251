@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 
 namespace Game1
 {
@@ -12,12 +13,26 @@ namespace Game1
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
         GamePadState gp1;
+        Texture2D[] spaceship;
 
-        Texture2D charTexture;
         Vector2 charPosition;
         Vector2 charDirection;
+        float charLookAngle;
+        float lastCharLookAngle;
+        float deltaCharLookAngle;
         float charScale;
-        float charSpeed;
+        float charCurrentMovSpeed;
+        float maxMovementSpeed;
+        float accelaration;
+        float charRotationSpeed;
+        float throttle;
+        float friction;
+        SpriteFont font;
+        string fpsText;
+        Vector2 fpsPos;
+        Color fpsColor;
+        int flames;
+
 
         public Game1()
         {
@@ -36,10 +51,22 @@ namespace Game1
             // TODO: Add your initialization logic here
 
             base.Initialize();
-            charTexture = Content.Load<Texture2D>("spaceship.png");
+            spaceship = new Texture2D[3];
+            spaceship[0] = Content.Load<Texture2D>("spaceship.png");
+            spaceship[1] = Content.Load<Texture2D>("spaceship2.png");
+            spaceship[2] = Content.Load<Texture2D>("spaceship3.png");
             charPosition = new Vector2(200.0f, 300.0f);
             charScale = 0.05f;
-            charSpeed = 100f;
+            accelaration = 2f;
+            maxMovementSpeed = 200f;
+            charLookAngle = 0f;
+            charRotationSpeed = 5f;
+            friction = 0.1f;
+            font = Content.Load<SpriteFont>("MyFont");
+            fpsText = "";
+            fpsColor = Color.DarkRed;
+            flames = 0;
+            charCurrentMovSpeed = 0;
         }
 
         protected override void LoadContent()
@@ -57,17 +84,26 @@ namespace Game1
 
         protected override void Update(GameTime gameTime)
         {
-            charDirection = Vector2.Zero;
+            deltaCharLookAngle = 0f;
             CheckForKeyPresses(Keyboard.GetState());
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            fpsPos= new Vector2(graphics.GraphicsDevice.Viewport.Width-100, graphics.GraphicsDevice.Viewport.Height-50);
+            fpsText = "FPS: " + Math.Round( 1 / deltaTime) +" \nThrottle:"+throttle+"\nSpeed:"+Math.Round(charCurrentMovSpeed);
 
-            charDirection *= charSpeed;
-            charPosition += (charDirection * deltaTime);
+            if(charCurrentMovSpeed < maxMovementSpeed) charCurrentMovSpeed += throttle / 100f * accelaration;
+            if (throttle == 0 && charCurrentMovSpeed > 0) charCurrentMovSpeed -= 1f;
+            if (throttle == 0 && charCurrentMovSpeed < 0) charCurrentMovSpeed += 1f;
 
+            charPosition += (charDirection * deltaTime * charCurrentMovSpeed);
+            charLookAngle += (deltaCharLookAngle * deltaTime * charRotationSpeed);
+
+
+
+         
             base.Update(gameTime);
         }
 
-        public void CheckForKeyPresses(KeyboardState ks)
+        protected void CheckForKeyPresses(KeyboardState ks)
         {
             if (ks.IsKeyDown(Keys.Escape))
             {
@@ -75,21 +111,36 @@ namespace Game1
             }
             if (ks.IsKeyDown(Keys.A))
             {
-                charDirection += new Vector2(-1.0f, 0.0f);
+                deltaCharLookAngle = -1f;
             }
             if (ks.IsKeyDown(Keys.D))
             {
-                charDirection += new Vector2(1.0f, 0.0f);
+                deltaCharLookAngle = 1f;
             }
             if (ks.IsKeyDown(Keys.W))
             {
-                charDirection += new Vector2(0.0f, -1.0f);
+                flames = 1;
+                if (throttle < 100 ) { throttle += 1; }
+                charDirection = new Vector2((float)Math.Cos(-0.5*Math.PI-charLookAngle)*-1 , (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
+    
             }
-            if (ks.IsKeyDown(Keys.S))
+           
+            else if (ks.IsKeyDown(Keys.S))
             {
-                charDirection += new Vector2(0.0f, 1.0f);
+                flames = 2;
+                if (throttle > -100 ) { throttle -= 1; }
+                charDirection = new Vector2((float)Math.Cos(-0.5 * Math.PI - charLookAngle)*-1, (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
+             
+                lastCharLookAngle = charLookAngle;
             }
+            else { throttle = 0; flames = 0; }
+            // else { throttle = 0; }
+
+
+
         }
+
+        
         /// <summary>
         /// This is called when the game should draw itself.
         /// </summary>
@@ -102,7 +153,8 @@ namespace Game1
 
             spriteBatch.Begin();
 
-            spriteBatch.Draw(charTexture, charPosition, null, Color.White, 0f, Vector2.Zero, charScale, SpriteEffects.None, 0f);
+            spriteBatch.Draw(spaceship[flames], charPosition, null, Color.White, charLookAngle, new Vector2(350f,350f), charScale, SpriteEffects.None, 0f);
+            spriteBatch.DrawString(font, fpsText, fpsPos, fpsColor, 0f, Vector2.Zero, 0.7f, SpriteEffects.None, 0f);
             spriteBatch.End();
             base.Draw(gameTime);
         }
