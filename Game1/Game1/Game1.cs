@@ -11,6 +11,13 @@ namespace Game1
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
+        GamePadState gp1;
+
+        Texture2D charTexture;
+        Vector2 charPosition;
+        Vector2 charDirection;
+        float charScale;
+        float charSpeed;
 
         public Game1()
         {
@@ -29,12 +36,12 @@ namespace Game1
             // TODO: Add your initialization logic here
 
             base.Initialize();
+            charTexture = Content.Load<Texture2D>("spaceship.png");
+            charPosition = new Vector2(200.0f, 300.0f);
+            charScale = 0.05f;
+            charSpeed = 100f;
         }
 
-        /// <summary>
-        /// LoadContent will be called once per game and is the place to load
-        /// all of your content.
-        /// </summary>
         protected override void LoadContent()
         {
             // Create a new SpriteBatch, which can be used to draw textures.
@@ -43,30 +50,46 @@ namespace Game1
             // TODO: use this.Content to load your game content here
         }
 
-        /// <summary>
-        /// UnloadContent will be called once per game and is the place to unload
-        /// game-specific content.
-        /// </summary>
         protected override void UnloadContent()
         {
             // TODO: Unload any non ContentManager content here
         }
 
-        /// <summary>
-        /// Allows the game to run logic such as updating the world,
-        /// checking for collisions, gathering input, and playing audio.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
+            charDirection = Vector2.Zero;
+            CheckForKeyPresses(Keyboard.GetState());
+            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            // TODO: Add your update logic here
+            charDirection *= charSpeed;
+            charPosition += (charDirection * deltaTime);
 
             base.Update(gameTime);
         }
 
+        public void CheckForKeyPresses(KeyboardState ks)
+        {
+            if (ks.IsKeyDown(Keys.Escape))
+            {
+                Exit();
+            }
+            if (ks.IsKeyDown(Keys.A))
+            {
+                charDirection += new Vector2(-1.0f, 0.0f);
+            }
+            if (ks.IsKeyDown(Keys.D))
+            {
+                charDirection += new Vector2(1.0f, 0.0f);
+            }
+            if (ks.IsKeyDown(Keys.W))
+            {
+                charDirection += new Vector2(0.0f, -1.0f);
+            }
+            if (ks.IsKeyDown(Keys.S))
+            {
+                charDirection += new Vector2(0.0f, 1.0f);
+            }
+        }
         /// <summary>
         /// This is called when the game should draw itself.
         /// </summary>
@@ -77,6 +100,10 @@ namespace Game1
 
             // TODO: Add your drawing code here
 
+            spriteBatch.Begin();
+
+            spriteBatch.Draw(charTexture, charPosition, null, Color.White, 0f, Vector2.Zero, charScale, SpriteEffects.None, 0f);
+            spriteBatch.End();
             base.Draw(gameTime);
         }
     }
