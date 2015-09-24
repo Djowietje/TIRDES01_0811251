@@ -14,24 +14,25 @@ namespace Game1
         SpriteBatch spriteBatch;
         GamePadState gp1;
         Texture2D[] spaceship;
-
+        Texture2D laserTex;
+        float charSpeed;
         Vector2 charPosition;
         Vector2 charDirection;
         float charLookAngle;
-        float lastCharLookAngle;
         float deltaCharLookAngle;
         float charScale;
         float charCurrentMovSpeed;
-        float maxMovementSpeed;
-        float accelaration;
         float charRotationSpeed;
+        float deltaTime;
+        Vector2 momentumForce;
+        Vector2 spaceshipForce;
         float throttle;
-        float friction;
         SpriteFont font;
         string fpsText;
         Vector2 fpsPos;
         Color fpsColor;
         int flames;
+        Laser lasers;
 
 
         public Game1()
@@ -55,18 +56,20 @@ namespace Game1
             spaceship[0] = Content.Load<Texture2D>("spaceship.png");
             spaceship[1] = Content.Load<Texture2D>("spaceship2.png");
             spaceship[2] = Content.Load<Texture2D>("spaceship3.png");
+            laserTex = Content.Load<Texture2D>("blueLaserAlpha.png");
             charPosition = new Vector2(200.0f, 300.0f);
-            charScale = 0.05f;
-            accelaration = 2f;
-            maxMovementSpeed = 200f;
+            momentumForce = new Vector2(0.0f, 0.0f);
+            spaceshipForce = new Vector2(0.0f, 0.0f);
+            charSpeed = 100f;
+            charScale = 0.1f;
             charLookAngle = 0f;
             charRotationSpeed = 5f;
-            friction = 0.1f;
             font = Content.Load<SpriteFont>("MyFont");
             fpsText = "";
             fpsColor = Color.DarkRed;
             flames = 0;
             charCurrentMovSpeed = 0;
+            lasers = new Laser();
         }
 
         protected override void LoadContent()
@@ -84,22 +87,23 @@ namespace Game1
 
         protected override void Update(GameTime gameTime)
         {
+            spaceshipForce = Vector2.Zero;
             deltaCharLookAngle = 0f;
             CheckForKeyPresses(Keyboard.GetState());
-            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
             fpsPos= new Vector2(graphics.GraphicsDevice.Viewport.Width-100, graphics.GraphicsDevice.Viewport.Height-50);
+
             fpsText = "FPS: " + Math.Round( 1 / deltaTime) +" \nThrottle:"+throttle+"\nSpeed:"+Math.Round(charCurrentMovSpeed);
 
-            if(charCurrentMovSpeed < maxMovementSpeed) charCurrentMovSpeed += throttle / 100f * accelaration;
-            if (throttle == 0 && charCurrentMovSpeed > 0) charCurrentMovSpeed -= 1f;
-            if (throttle == 0 && charCurrentMovSpeed < 0) charCurrentMovSpeed += 1f;
-
-            charPosition += (charDirection * deltaTime * charCurrentMovSpeed);
-            charLookAngle += (deltaCharLookAngle * deltaTime * charRotationSpeed);
+            if (spaceshipForce.X < momentumForce.X) momentumForce.X-=throttle/10000;
+            else if (spaceshipForce.X > momentumForce.X) momentumForce.X += throttle / 10000;
+            if (spaceshipForce.Y < momentumForce.Y) momentumForce.Y -= throttle / 10000;
+            else if (spaceshipForce.Y > momentumForce.Y) momentumForce.Y += throttle / 10000;
 
 
-
-         
+            charLookAngle += (deltaCharLookAngle * deltaTime * charRotationSpeed );
+            charPosition += (momentumForce * deltaTime * charSpeed);
+            //Console.WriteLine("SpaceshipForce ="+spaceshipForce + "  \n MomentumForce ="+momentumForce);
             base.Update(gameTime);
         }
 
@@ -120,23 +124,24 @@ namespace Game1
             if (ks.IsKeyDown(Keys.W))
             {
                 flames = 1;
-                if (throttle < 100 ) { throttle += 1; }
-                charDirection = new Vector2((float)Math.Cos(-0.5*Math.PI-charLookAngle)*-1 , (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
+                if(throttle<100) throttle += 1;
+                spaceshipForce = new Vector2((float)Math.Cos(-0.5*Math.PI-charLookAngle)*-1 , (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
     
             }
+            else { if (throttle > 0) throttle -= 1; flames = 0; }
            
-            else if (ks.IsKeyDown(Keys.S))
+            if (ks.IsKeyDown(Keys.S))
             {
                 flames = 2;
-                if (throttle > -100 ) { throttle -= 1; }
-                charDirection = new Vector2((float)Math.Cos(-0.5 * Math.PI - charLookAngle)*-1, (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
-             
-                lastCharLookAngle = charLookAngle;
+                if (throttle > -100) throttle -= 1;
+                spaceshipForce = new Vector2((float)Math.Cos(-0.5 * Math.PI - charLookAngle)*-1, (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
             }
-            else { throttle = 0; flames = 0; }
-            // else { throttle = 0; }
 
-
+            if (ks.IsKeyDown(Keys.Space))
+            {
+                //Fire Laser at current look angle
+                lasers.AddLaser(spriteBatch, laserTex, charPosition, charLookAngle, graphics.GraphicsDevice.Viewport.Width, graphics.GraphicsDevice.Viewport.Height);
+            }
 
         }
 
@@ -147,12 +152,15 @@ namespace Game1
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(Color.Black);
 
             // TODO: Add your drawing code here
 
             spriteBatch.Begin();
-
+            if (lasers != null)
+            {
+                lasers.DrawTheLaser();
+            }
             spriteBatch.Draw(spaceship[flames], charPosition, null, Color.White, charLookAngle, new Vector2(350f,350f), charScale, SpriteEffects.None, 0f);
             spriteBatch.DrawString(font, fpsText, fpsPos, fpsColor, 0f, Vector2.Zero, 0.7f, SpriteEffects.None, 0f);
             spriteBatch.End();
