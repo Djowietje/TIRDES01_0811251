@@ -17,7 +17,6 @@ namespace Game1
         Texture2D laserTex;
         float charSpeed;
         Vector2 charPosition;
-        Vector2 charDirection;
         float charLookAngle;
         float deltaCharLookAngle;
         float charScale;
@@ -32,7 +31,9 @@ namespace Game1
         Vector2 fpsPos;
         Color fpsColor;
         int flames;
-        Laser lasers;
+        LaserHandler lasers;
+        bool spacePressed;
+        bool forward;
 
 
         public Game1()
@@ -69,7 +70,10 @@ namespace Game1
             fpsColor = Color.DarkRed;
             flames = 0;
             charCurrentMovSpeed = 0;
-            lasers = new Laser();
+            lasers = new LaserHandler();
+            spacePressed = false;
+            forward = true;
+
         }
 
         protected override void LoadContent()
@@ -123,25 +127,32 @@ namespace Game1
             }
             if (ks.IsKeyDown(Keys.W))
             {
+                forward = true;
                 flames = 1;
                 if(throttle<100) throttle += 1;
-                spaceshipForce = new Vector2((float)Math.Cos(-0.5*Math.PI-charLookAngle)*-1 , (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
-    
+                spaceshipForce = new Vector2((float)Math.Cos(-0.5 * Math.PI - charLookAngle)*-1 , (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
             }
-            else { if (throttle > 0) throttle -= 1; flames = 0; }
+            else { if (throttle > 0) { throttle -= 1; flames = 0; } }
            
             if (ks.IsKeyDown(Keys.S))
             {
+                forward = false;
                 flames = 2;
-                if (throttle > -100) throttle -= 1;
+                if (throttle < 100) throttle += 1;
                 spaceshipForce = new Vector2((float)Math.Cos(-0.5 * Math.PI - charLookAngle)*-1, (float)Math.Sin(-0.5 * Math.PI - charLookAngle));
             }
+            else { if (throttle < 0) {throttle += 1; flames = 0;} }
 
             if (ks.IsKeyDown(Keys.Space))
             {
-                //Fire Laser at current look angle
-                lasers.AddLaser(spriteBatch, laserTex, charPosition, charLookAngle, graphics.GraphicsDevice.Viewport.Width, graphics.GraphicsDevice.Viewport.Height);
+                if (!spacePressed)
+                {
+                    //Fire Laser at current look angle
+                    lasers.AddLaser(spriteBatch, laserTex, charPosition, charLookAngle, graphics.GraphicsDevice.Viewport.Width, graphics.GraphicsDevice.Viewport.Height);
+                }
+                spacePressed = true;
             }
+            else { spacePressed = false;  }
 
         }
 
